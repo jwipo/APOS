@@ -1,0 +1,200 @@
+body {
+  margin: 0;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: background-image 0.8s cubic-bezier(0.33, 1, 0.68, 1);
+  font-family: sans-serif;
+  position: relative;
+  cursor: none;
+  background-color: black;
+}
+.button-group {
+  position: fixed;
+  top: 100px;
+  left: 20px;
+  z-index: 10;
+}
+button {
+  margin: 5px;
+  padding: 10px 15px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.zone {
+  position: absolute;
+  z-index: 5;
+}
+.zone-left {
+  left: 0;
+  width: 32%;
+  height: 100%;
+  top: 0;
+}
+.zone-front {
+  left: 32%;
+  width: 36%;
+  height: 50%;
+  top: 0;
+}
+.zone-right {
+  left: 68%;
+  width: 32%;
+  height: 100%;
+  top: 0;
+}
+.zone-back {
+  left: 32%;
+  width: 36%;
+  height: 50%;
+  top: 50%;
+}
+.custom-cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 80px;
+  height: 80px;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  transform: scale(1) rotate(0deg);
+  background: center/cover no-repeat;
+  transition: opacity 0.26s cubic-bezier(0.33, 1, 0.68, 1),
+    transform 0.26s cubic-bezier(0.33, 1, 0.68, 1);
+  will-change: transform, opacity, background;
+}
+.custom-cursor.active {
+  opacity: 0.95;
+  transform: scale(1.05) rotate(0deg);
+}
+.custom-cursor.fadeout {
+  opacity: 0;
+  transform: scale(0.7) rotate(-15deg);
+}
+.clock-ui-absolute {
+  position: fixed;
+  top: 32px;
+  right: 40px;
+  z-index: 30;
+  pointer-events: none;
+  user-select: none;
+}
+.clock-wrap {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+}
+.clock-svg {
+  width: 180px;
+  height: 180px;
+}
+.hand {
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-width: 4px;
+  filter: drop-shadow(0 0 2px #fff8);
+}
+.minute-hand {
+  stroke-width: 2.2px;
+}
+.center-dot {
+  fill: #fff;
+  opacity: 0.92;
+}
+.date-text {
+  position: absolute;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 15.7px;
+  letter-spacing: 1.1px;
+  opacity: 0.8;
+  text-shadow: 0 1px 2px #000a;
+}
+.weather-icon {
+  position: absolute;
+  right: 3px;
+  top: -11px;
+  width: 45px;
+  height: 45px;
+  z-index: 2;
+}
+.weather-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+canvas {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 56px;
+  z-index: 1200;
+  image-rendering: pixelated;
+}
+/* 체력바 css */
+.health-container {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 200px;
+  z-index: 9999;
+}
+.player-name {
+  font-family: "Press Start 2P", monospace;
+  font-size: 12px;
+  color: #ffffff;
+  letter-spacing: 1px;
+  image-rendering: pixelated;
+  text-shadow: 1px 0 #fff, 0 1px #fff;
+  margin-bottom: 5px;
+}
+
+.health-bar-bg {
+  width: 100%;
+  height: 10px;
+  background-color: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+  box-shadow: 0 0 6px #ff6b6b, /* 메인 번짐 효과 */ 0 0 12px #ff6b6b88,
+    /* 외곽 퍼짐 */ 0 0 20px #ff6b6b44; /* 더 옅은 바깥 glow */
+}
+.health-bar {
+  height: 10px;
+  background-color: #d14c63;
+  width: 100%;
+  transition: width 1s ease-in-out;
+}
+
+/* 버튼 UI */
+.health-buttons {
+  position: fixed;
+  top: 60px;
+  left: 20px;
+  z-index: 9999;
+}
+
+.health-buttons button {
+  font-family: "Press Start 2P", monospace;
+  font-size: 10px;
+  margin-right: 6px;
+  padding: 4px 8px;
+  background-color: #1a1a1a;
+  color: #fff;
+  border: 1px solid #aaa;
+  cursor: pointer;
+  box-shadow: 0 0 4px #ff666688;
+  transition: all 0.2s;
+}
+.health-buttons button:hover {
+  background-color: #2d2d2d;
+  box-shadow: 0 0 8px #ffaaaa99;
+}

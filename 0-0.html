@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>APOS 통합 UI + 파형</title>
+    <style>
+      body {
+        margin: 0;
+        height: 100vh;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        transition: background-image 0.8s cubic-bezier(0.33, 1, 0.68, 1);
+        font-family: sans-serif;
+        position: relative;
+        cursor: none;
+        background-color: black;
+      }
+      .button-group {
+        position: fixed;
+        top: 100px;
+        left: 20px;
+        z-index: 10;
+      }
+      button {
+        margin: 5px;
+        padding: 10px 15px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .zone {
+        position: absolute;
+        z-index: 5;
+      }
+      .zone-left {
+        left: 0;
+        width: 32%;
+        height: 100%;
+        top: 0;
+      }
+      .zone-front {
+        left: 32%;
+        width: 36%;
+        height: 50%;
+        top: 0;
+      }
+      .zone-right {
+        left: 68%;
+        width: 32%;
+        height: 100%;
+        top: 0;
+      }
+      .zone-back {
+        left: 32%;
+        width: 36%;
+        height: 50%;
+        top: 50%;
+      }
+      .custom-cursor {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 80px;
+        height: 80px;
+        pointer-events: none;
+        z-index: 9999;
+        opacity: 0;
+        transform: scale(1) rotate(0deg);
+        background: center/cover no-repeat;
+        transition: opacity 0.26s cubic-bezier(0.33, 1, 0.68, 1),
+          transform 0.26s cubic-bezier(0.33, 1, 0.68, 1);
+        will-change: transform, opacity, background;
+      }
+      .custom-cursor.active {
+        opacity: 0.95;
+        transform: scale(1.05) rotate(0deg);
+      }
+      .custom-cursor.fadeout {
+        opacity: 0;
+        transform: scale(0.7) rotate(-15deg);
+      }
+      .clock-ui-absolute {
+        position: fixed;
+        top: 32px;
+        right: 40px;
+        z-index: 30;
+        pointer-events: none;
+        user-select: none;
+      }
+      .clock-wrap {
+        position: relative;
+        width: 150px;
+        height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .clock-svg {
+        width: 150px;
+        height: 150px;
+      }
+      .hand {
+        stroke: #fff;
+        stroke-linecap: round;
+        stroke-width: 4px;
+        filter: drop-shadow(0 0 2px #fff8);
+      }
+      .minute-hand {
+        stroke-width: 2.2px;
+      }
+      .center-dot {
+        fill: #fff;
+        opacity: 0.92;
+      }
+      .date-text {
+        position: absolute;
+        left: 50%;
+        bottom: 40px;
+        transform: translateX(-50%);
+        color: #fff;
+        font-size: 15.7px;
+        letter-spacing: 1.1px;
+        opacity: 0.8;
+        text-shadow: 0 1px 2px #000a;
+      }
+      .weather-icon {
+        position: absolute;
+        right: 3px;
+        top: -11px;
+        width: 36px;
+        height: 36px;
+        z-index: 2;
+      }
+      .weather-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      canvas {
+        position: fixed;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 500px;
+        height: 56px;
+        z-index: 1200;
+        image-rendering: pixelated;
+      }
+      /* 체력바 css */
+      .health-container {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        width: 200px;
+        z-index: 9999;
+      }
+      .player-name {
+        font-family: "Press Start 2P", monospace;
+        font-size: 12px;
+        color: #ffffff;
+        letter-spacing: 1px;
+        image-rendering: pixelated;
+        text-shadow: 1px 0 #fff, 0 1px #fff;
+        margin-bottom: 5px;
+      }
+
+      .health-bar-bg {
+        width: 100%;
+        height: 10px;
+        background-color: rgba(255, 255, 255, 0.25);
+        overflow: hidden;
+        box-shadow: 0 0 6px #ff6b6b, /* 메인 번짐 효과 */ 0 0 12px #ff6b6b88,
+          /* 외곽 퍼짐 */ 0 0 20px #ff6b6b44; /* 더 옅은 바깥 glow */
+      }
+      .health-bar {
+        height: 10px;
+        background-color: #d14c63;
+        width: 100%;
+        transition: width 1s ease-in-out;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="button-group">
+      <div><strong>🕒 시간대 변경</strong></div>
+      <button onclick="setTheme('dawn')">🌙 새벽</button>
+      <button onclick="setTheme('day')">☀️ 낮</button>
+      <button onclick="setTheme('evening')">🌆 저녁</button>
+    </div>
+
+    <div
+      class="zone zone-left"
+      onclick="setViewByOffset(-1)"
+      onmouseenter="setCursor('left')"
+      onmouseleave="resetCursor()"
+    ></div>
+    <div
+      class="zone zone-front"
+      onclick="goForward()"
+      onmouseenter="setCursor('front')"
+      onmouseleave="resetCursor()"
+    ></div>
+    <div
+      class="zone zone-right"
+      onclick="setViewByOffset(1)"
+      onmouseenter="setCursor('right')"
+      onmouseleave="resetCursor()"
+    ></div>
+    <div
+      class="zone zone-back"
+      onclick="goBackSite()"
+      onmouseenter="setCursor('back')"
+      onmouseleave="resetCursor()"
+    ></div>
+
+    <div class="custom-cursor" id="cursorA"></div>
+    <div class="custom-cursor" id="cursorB"></div>
+
+    <div class="clock-ui-absolute">
+      <div class="clock-wrap">
+        <svg class="clock-svg" viewBox="0 0 170 170">
+          <circle cx="85" cy="85" r="82" fill="#222" opacity="0.65" />
+          <g id="ticks"></g>
+          <line id="hourHand" class="hand" x1="85" y1="85" x2="85" y2="50" />
+          <line
+            id="minuteHand"
+            class="hand minute-hand"
+            x1="85"
+            y1="85"
+            x2="85"
+            y2="20"
+          />
+          <circle class="center-dot" cx="85" cy="85" r="4.5" />
+        </svg>
+        <div class="date-text" id="clockDate"></div>
+        <div class="weather-icon" id="weatherIcon"></div>
+      </div>
+    </div>
+
+    <canvas id="waveCanvas" width="500" height="56"></canvas>
+
+    <!-- 체력바 ui -->
+    <div class="health-container">
+      <div class="player-name">TESTuser</div>
+      <div class="health-bar-bg">
+        <div class="health-bar" id="healthBar"></div>
+      </div>
+    </div>
+
+    
+
+    <script>
+      const mapMatrix = {
+        "0,0": true,
+        "1,0": true,
+        "0,-1": false, // 이 위치는 벽
+        "0,1": true,
+        "-1,0": false,
+      };
+      let playerPosition = { x: 0, y: 0 }; // 시작 위치 (ex: 0,0)
+      const dirOffset = {
+        front: { dx: 1, dy: 0 },
+        right: { dx: 0, dy: 1 },
+        back: { dx: -1, dy: 0 },
+        left: { dx: 0, dy: -1 },
+      };
+
+      const views = ["front", "right", "back", "left"];
+      let currentViewIndex = 0;
+      const themeImages = {
+        front: {
+          dawn: "front-dawn.png",
+          day: "test-a.png",
+          evening: "front-evening.png",
+        },
+        left: {
+          dawn: "left-dawn.png",
+          day: "test-b.png",
+          evening: "left-evening.png",
+        },
+        right: {
+          dawn: "right-dawn.png",
+          day: "test-c.png",
+          evening: "right-evening.png",
+        },
+        back: {
+          dawn: "back-dawn.png",
+          day: "test1.png",
+          evening: "back-evening.png",
+        },
+      };
+      const cursors = {
+        left: "cursor-left.png",
+        front: "cursor-front.png",
+        right: "cursor-right.png",
+        back: "cursor-back.png",
+      };
+
+      let currentTheme = getKSTTheme();
+
+      function getKSTTheme() {
+        const kstHour = (new Date().getUTCHours() + 9) % 24;
+        if (kstHour <= 5) return "dawn";
+        if (kstHour <= 17) return "day";
+        return "evening";
+      }
+
+      function setWeatherIcon(theme) {
+        const iconWrap = document.getElementById("weatherIcon");
+        iconWrap.innerHTML = "";
+
+        const svgBase = (innerContent, bg, opacity) => `
+    <svg viewBox="0 0 64 64" width="80" height="80" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <clipPath id="circleMask">
+          <circle cx="32" cy="32" r="28" />
+        </clipPath>
+      </defs>
+      <circle cx="32" cy="32" r="28" fill="${bg}" opacity="${opacity}" />
+      <g clip-path="url(#circleMask)">
+        ${innerContent}
+      </g>
+    </svg>
+  `;
+
+        let content = "";
+        let bgColor = "#000"; // 기본 어두운 배경
+        let opacity = 0.85;
+
+        if (theme === "day") {
+          bgColor = "#FFEAAA";
+          opacity = 0.4;
+          content = `
+      <circle cx="32" cy="32" r="14" fill="#FFD93B" stroke="#FFB700" stroke-width="2"/>
+      ${[0, 45, 90, 135, 180, 225, 270, 315]
+        .map((angle) => {
+          const rad = (angle * Math.PI) / 180;
+          const x1 = 32 + Math.cos(rad) * 20;
+          const y1 = 32 + Math.sin(rad) * 20;
+          const x2 = 32 + Math.cos(rad) * 28;
+          const y2 = 32 + Math.sin(rad) * 28;
+          return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#FFD93B" stroke-width="2.2" stroke-linecap="round"/>`;
+        })
+        .join("")}
+    `;
+        } else if (theme === "dawn") {
+          bgColor = "#1B1D2B";
+          opacity = 0.5;
+          content = `
+      <path d="M24 22 A14 14 0 1 0 44 32 A8 11 0 1 1 24 22"
+            fill="#FFCE54" stroke="#B17F00" stroke-width="2.2"/>
+      <path d="M20 38 Q24 30 30 32 Q32 28 40 32 Q46 33 48 38 H22 Q20 39 20 38"
+            fill="#7B8EC6" stroke="#445E99" stroke-width="2" opacity="0.85"/>
+    `;
+        } else if (theme === "evening") {
+          bgColor = "#3B1C20"; // 붉은 저녁 하늘 느낌
+          opacity = 0.6;
+          content = `
+      <!-- 주황빛 보름달 -->
+      <circle cx="32" cy="32" r="14" fill="#FFBB66" stroke="#D4882F" stroke-width="2"/>
+      
+      <!-- 붉은 섀도우 -->
+      <circle cx="38" cy="26" r="2" fill="#CC6644" opacity="0.5" />
+      <circle cx="26" cy="38" r="1.5" fill="#AA5533" opacity="0.6" />
+      <circle cx="40" cy="42" r="1.5" fill="#C76630" opacity="0.7" />
+
+      <!-- 붉은 별 느낌 -->
+      ${[
+        [18, 14],
+        [45, 20],
+        [38, 10],
+      ]
+        .map(
+          ([x, y]) =>
+            `<circle cx="${x}" cy="${y}" r="1.2" fill="#FFA07A" opacity="0.8"/>`
+        )
+        .join("")}
+    `;
+        } else {
+          bgColor = "#444";
+          opacity = 0.6;
+          content = `<text x="32" y="38" text-anchor="middle" font-size="12" fill="#aaa">??</text>`;
+        }
+
+        iconWrap.innerHTML = svgBase(content, bgColor, opacity);
+      }
+
+      function updateBackground() {
+        const img = themeImages[views[currentViewIndex]][currentTheme];
+        document.body.style.backgroundImage = `url('${img}')`;
+        setWeatherIcon(currentTheme);
+      }
+
+      function setTheme(theme) {
+        currentTheme = theme;
+        updateBackground();
+      }
+      function setViewByOffset(offset) {
+        currentViewIndex =
+          (currentViewIndex + offset + views.length) % views.length;
+        updateBackground();
+      }
+      function goForward() {
+        const dir = views[currentViewIndex];
+        const { dx, dy } = dirOffset[dir];
+        const nextX = playerPosition.x + dx;
+        const nextY = playerPosition.y + dy;
+        const key = `${nextX},${nextY}`;
+
+        if (mapMatrix[key]) {
+          playerPosition = { x: nextX, y: nextY };
+          location.href = `${nextX}-${nextY}.html`;
+        } else {
+          alert("🚫 이동할 수 없습니다.");
+        }
+      }
+
+      function goBackSite() {
+        currentViewIndex = (currentViewIndex + 2) % views.length;
+        updateBackground();
+      }
+
+      const cursorA = document.getElementById("cursorA");
+      const cursorB = document.getElementById("cursorB");
+      let nowCursor = "front",
+        usingA = true;
+
+      document.addEventListener("mousemove", (e) => {
+        const x = e.clientX - 40 + "px",
+          y = e.clientY - 40 + "px";
+        cursorA.style.left = cursorB.style.left = x;
+        cursorA.style.top = cursorB.style.top = y;
+      });
+
+      function setCursor(dir) {
+        if (nowCursor === dir) return;
+        const fadeOut = usingA ? cursorA : cursorB;
+        const fadeIn = usingA ? cursorB : cursorA;
+        fadeIn.style.background = `url('${cursors[dir]}') center/cover no-repeat`;
+        fadeIn.classList.add("active");
+        fadeIn.classList.remove("fadeout");
+        fadeOut.classList.remove("active");
+        fadeOut.classList.add("fadeout");
+        nowCursor = dir;
+        usingA = !usingA;
+      }
+
+      function resetCursor() {
+        setCursor("front");
+      }
+
+      cursorA.style.background = `url('${cursors.front}') center/cover no-repeat`;
+      cursorA.classList.add("active");
+      cursorB.classList.add("fadeout");
+      updateBackground();
+
+      const weekKor = ["일", "월", "화", "수", "목", "금", "토"];
+      const tickGroup = document.getElementById("ticks");
+      for (let i = 0; i < 60; i++) {
+        const angle = (i / 60) * 2 * Math.PI;
+        const r1 = i % 5 === 0 ? 67 : 72;
+        const r2 = 78;
+        const x1 = 85 + Math.sin(angle) * r1;
+        const y1 = 85 - Math.cos(angle) * r1;
+        const x2 = 85 + Math.sin(angle) * r2;
+        const y2 = 85 - Math.cos(angle) * r2;
+        const tick = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "line"
+        );
+        tick.setAttribute("x1", x1);
+        tick.setAttribute("y1", y1);
+        tick.setAttribute("x2", x2);
+        tick.setAttribute("y2", y2);
+        tick.setAttribute("stroke", "#fff");
+        tick.setAttribute("stroke-width", i % 5 === 0 ? "1.5" : "0.7");
+        tick.setAttribute("opacity", i % 5 === 0 ? "0.9" : "0.4");
+        tickGroup.appendChild(tick);
+      }
+
+      function updateClock() {
+        const now = new Date(),
+          kst = new Date(now.getTime() + 9 * 60 * 60000);
+        const h = kst.getHours(),
+          m = kst.getMinutes();
+        document
+          .getElementById("hourHand")
+          .setAttribute(
+            "transform",
+            `rotate(${((h % 12) + m / 60) * 30} 85 85)`
+          );
+        document
+          .getElementById("minuteHand")
+          .setAttribute("transform", `rotate(${m * 6} 85 85)`);
+        document.getElementById("clockDate").textContent = `${kst.getDate()}(${
+          weekKor[kst.getDay()]
+        })`;
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      const canvas = document.getElementById("waveCanvas");
+      const ctx = canvas.getContext("2d");
+      let bpm = 80,
+        color = [255, 255, 255],
+        amp = 6,
+        noise = 2.5,
+        speed = 1.8;
+      let scrollOffset = 0,
+        breath = 0;
+
+      function getStatusParams(bpm) {
+        if (bpm >= 130)
+          return { color: [255, 37, 59], amp: 18, noise: 6.0, speed: 11.0 };
+        if (bpm >= 100)
+          return { color: [255, 170, 43], amp: 12, noise: 4.5, speed: 9.0 };
+        if (bpm >= 70)
+          return { color: [255, 255, 255], amp: 6, noise: 2.5, speed: 6.0 };
+        return { color: [180, 255, 180], amp: 4, noise: 1.5, speed: 3.0 };
+      }
+
+      function draw(timestamp) {
+        const params = getStatusParams(bpm);
+        color = params.color;
+        amp = params.amp;
+        noise = params.noise;
+        speed = params.speed;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const offsetY = canvas.height / 2;
+        const N = 240;
+        scrollOffset += 0.0025;
+        breath += 0.03;
+        for (let i = 0; i < N; i++) {
+          const xRatio = i / (N - 1);
+          const x = Math.floor(xRatio * canvas.width);
+          const fade =
+            Math.sin(xRatio * Math.PI) *
+            Math.exp(-Math.pow((xRatio - 0.5) / 0.3, 2));
+          const waveBase = (xRatio + scrollOffset) * 12 + timestamp * 0.00003;
+          const wave = Math.sin(waveBase);
+          const breathAmp = 1 + Math.sin(breath) * 0.1;
+          const glitch = (Math.random() - 0.5) * 0.4;
+          const y = Math.round(
+            offsetY + (wave * amp + glitch * noise) * fade * breathAmp
+          );
+          ctx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${
+            color[2]
+          }, ${fade.toFixed(2)})`;
+          ctx.fillRect(x, y, 3, 2);
+        }
+        requestAnimationFrame(draw);
+      }
+      requestAnimationFrame(draw);
+      // 체력바 스크립트
+      function setHealth(percent) {
+        const bar = document.getElementById("healthBar");
+        bar.style.width = percent + "%";
+      }
+    </script>
+  </body>
+</html>
